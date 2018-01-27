@@ -404,10 +404,14 @@ def check_link(browser,
                like_by_followers_upper_limit,
                like_by_followers_lower_limit,
                logger,
-               include_tags=None):
+               include_tags=None,
+               dont_include=None):
 
     if include_tags is None:
         include_tags = []
+
+    if dont_include is None:
+        dont_include = []
 
     browser.get(link)
     # update server calls
@@ -478,6 +482,10 @@ def check_link(browser,
         image_text = "No description"
 
     logger.info('Image from: {}'.format(user_name.encode('utf-8')))
+
+    # skip any images from the dont_include list of users
+    if dont_include and user_name in dont_include:
+        return True, user_name, is_video, 'User in DONT_INCLUDE list'
 
     # if we want to only match if one of the include tags is present
     if include_tags:

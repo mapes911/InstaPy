@@ -852,7 +852,8 @@ class InstaPy:
                                self.like_by_followers_upper_limit,
                                self.like_by_followers_lower_limit,
                                self.logger,
-                               include_tags)
+                               include_tags,
+                               self.dont_include)
                 )
 
                 if not inappropriate:
