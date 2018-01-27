@@ -23,7 +23,11 @@ for run in runs:
         session.set_do_follow(enabled=True, percentage=config['do_follow_percentage'], times=config['do_follow_times'])
 
     # run the like_by_tags
-    session.like_by_tags(run['tags'], amount=run['amount'])
+    session.like_by_tags_with_inclusion(
+        main_tag=run['main_tag'],
+        include_tags=run['include_tags'],
+        amount=run['amount']
+    )
 
     # do an unfollow?
     if 'do_unfollow' in config and config['do_unfollow'] is True:

@@ -403,7 +403,11 @@ def check_link(browser,
                username,
                like_by_followers_upper_limit,
                like_by_followers_lower_limit,
-               logger):
+               logger,
+               include_tags=None):
+
+    if include_tags is None:
+        include_tags = []
 
     browser.get(link)
     # update server calls
@@ -474,6 +478,31 @@ def check_link(browser,
         image_text = "No description"
 
     logger.info('Image from: {}'.format(user_name.encode('utf-8')))
+
+    # if we want to only match if one of the include tags is present
+    if include_tags:
+        match = False
+        include_regex = []
+
+        for include_tag in include_tags:
+            if include_tag.startswith("#"):
+                include_regex.append(include_tag + "([^\d\w]|$)")
+            elif include_tag.startswith("["):
+                include_regex.append("#" + include_tag[1:] + "[\d\w]+([^\d\w]|$)")
+            elif include_tag.startswith("]"):
+                include_regex.append("#[\d\w]+" + include_tag[1:] + "([^\d\w]|$)")
+            else:
+                include_regex.append(
+                    "#[\d\w]*" + include_tag + "[\d\w]*([^\d\w]|$)")
+
+        for inc_regex in include_regex:
+            if re.search(inc_regex, image_text, re.IGNORECASE):
+                # match found! this image is ok to go through the other checks.
+                match = True
+
+        # if no match, return Innappropriate
+        if match is False:
+            return True, user_name, is_video, 'Non Matching Tags'
 
     """Find the number of followes the user has"""
     if like_by_followers_upper_limit or like_by_followers_lower_limit:

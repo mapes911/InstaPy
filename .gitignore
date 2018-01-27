@@ -100,9 +100,6 @@ ENV/
 .idea
 .vscode
 
-# DB
-db/instapy.db
-
 # log files
 logs/
 

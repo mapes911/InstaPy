@@ -797,6 +797,172 @@ class InstaPy:
 
         return self
 
+    def like_by_tags_with_inclusion(self,
+                     main_tag=None,
+                     include_tags=None,
+                     amount=50,
+                     media=None,
+                     skip_top_posts=True,
+                     interact=False):
+
+        """ copy of like_by_tags but will attempt to match one of the include tags as well """
+
+        """Likes (default) 50 images per given tag"""
+        if self.aborting:
+            return self
+
+        liked_img = 0
+        already_liked = 0
+        inap_img = 0
+        commented = 0
+        followed = 0
+
+        # deletes white spaces in tags
+        main_tag = main_tag.strip()
+        if include_tags is None:
+            include_tags = []
+        else:
+            include_tags = [tag.strip() for tag in include_tags]
+
+        self.logger.info('Tag {}'.format(main_tag))
+
+        try:
+            links = get_links_for_tag(self.browser,
+                                      main_tag,
+                                      amount,
+                                      self.logger,
+                                      media,
+                                      skip_top_posts)
+        except NoSuchElementException:
+            self.logger.error('Too few images, skipping this tag')
+            return self
+
+        for i, link in enumerate(links):
+            self.logger.info('[{}/{}]'.format(i + 1, len(links)))
+            self.logger.info(link)
+
+            try:
+                inappropriate, user_name, is_video, reason = (
+                    check_link(self.browser,
+                               link,
+                               self.dont_like,
+                               self.ignore_if_contains,
+                               self.ignore_users,
+                               self.username,
+                               self.like_by_followers_upper_limit,
+                               self.like_by_followers_lower_limit,
+                               self.logger,
+                               include_tags)
+                )
+
+                if not inappropriate:
+                    liked = like_image(self.browser,
+                                       user_name,
+                                       self.blacklist,
+                                       self.logger)
+
+                    if liked:
+
+                        if interact:
+                            username = (self.browser.
+                                find_element_by_xpath(
+                                    '//article/header/div[2]/'
+                                    'div[1]/div/a'))
+
+                            username = username.get_attribute("title")
+                            name = []
+                            name.append(username)
+
+                            self.logger.info(
+                                '--> User followed: {}'
+                                .format(name))
+                            self.like_by_users(
+                                name,
+                                self.user_interact_amount,
+                                self.user_interact_random,
+                                self.user_interact_media)
+
+                        liked_img += 1
+                        checked_img = True
+                        temp_comments = []
+                        commenting = (random.randint(0, 100) <=
+                                      self.comment_percentage)
+                        following = (random.randint(0, 100) <=
+                                     self.follow_percentage)
+
+                        if self.use_clarifai and (following or commenting):
+                            try:
+                                checked_img, temp_comments = (
+                                    check_image(self.browser,
+                                                self.clarifai_api_key,
+                                                self.clarifai_img_tags,
+                                                self.logger,
+                                                self.clarifai_full_match)
+                                )
+                            except Exception as err:
+                                self.logger.error(
+                                    'Image check error: {}'.format(err))
+
+                        if (self.do_comment and
+                            user_name not in self.dont_include and
+                            checked_img and
+                                commenting):
+
+                            if temp_comments:
+                                # Use clarifai related comments only!
+                                comments = temp_comments
+                            elif is_video:
+                                comments = (self.comments +
+                                            self.video_comments)
+                            else:
+                                comments = (self.comments +
+                                            self.photo_comments)
+                            commented += comment_image(self.browser,
+                                                       user_name,
+                                                       comments,
+                                                       self.blacklist,
+                                                       self.logger,
+                                                       self.logfolder)
+                        else:
+                            self.logger.info('--> Not commented')
+                            sleep(1)
+
+                        if (self.do_follow and
+                            user_name not in self.dont_include and
+                            checked_img and
+                            following and
+                            self.follow_restrict.get(user_name, 0) <
+                                self.follow_times):
+
+                            followed += follow_user(self.browser,
+                                                    self.follow_restrict,
+                                                    self.username,
+                                                    user_name,
+                                                    self.blacklist,
+                                                    self.logger,
+                                                    self.logfolder)
+                        else:
+                            self.logger.info('--> Not following')
+                            sleep(1)
+                    else:
+                        already_liked += 1
+                else:
+                    self.logger.info(
+                        '--> Image not liked: {}'.format(reason))
+                    inap_img += 1
+            except NoSuchElementException as err:
+                self.logger.error('Invalid Page: {}'.format(err))
+
+        self.logger.info('Liked: {}'.format(liked_img))
+        self.logger.info('Already Liked: {}'.format(already_liked))
+        self.logger.info('Inappropriate: {}'.format(inap_img))
+        self.logger.info('Commented: {}'.format(commented))
+        self.logger.info('Followed: {}'.format(followed))
+
+        self.followed += followed
+
+        return self
+
     def like_by_users(self, usernames, amount=10, randomize=False, media=None):
         """Likes some amounts of images for each usernames"""
         if self.aborting:
