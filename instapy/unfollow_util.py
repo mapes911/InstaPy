@@ -331,8 +331,8 @@ def follow_user(browser, follow_restrict, login, user_name, blacklist, logger, l
 
     try:
         follow_button = browser.find_element_by_xpath("//button[text()='Follow']")
-    except Exception, e:
-        logger.info('--> Follow button not found {}'.format(e))
+    except:
+        logger.info('--> Follow button not found')
         sleep(1)
         return 0
 
