@@ -5,7 +5,7 @@ from insta_config import config
 from insta_config import runs
 
 for run in runs:
-    session = InstaPy(username=config['username'], password=config['password'])
+    session = InstaPy(username=config['username'], password=config['password'], nogui=config['nogui'])
     session.login()
 
     # read the global config and do the set_XXX methods
