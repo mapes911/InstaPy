@@ -411,8 +411,12 @@ def check_link(browser,
     sleep(2)
 
     """Check if the Post is Valid/Exists"""
-    post_page = browser.execute_script(
-        "return window._sharedData.entry_data.PostPage")
+    try:
+        post_page = browser.execute_script(
+            "return window._sharedData.entry_data.PostPage")
+    except:
+        return True, None, None, 'Unavailable Page'
+
     if post_page is None:
         logger.warning('Unavailable Page: {}'.format(link.encode('utf-8')))
         return True, None, None, 'Unavailable Page'
@@ -478,9 +482,13 @@ def check_link(browser,
         # update server calls
         update_activity()
         sleep(1)
-        num_followers = browser.execute_script(
-            "return window._sharedData.entry_data."
-            "ProfilePage[0].user.followed_by.count")
+        try:
+            num_followers = browser.execute_script(
+                "return window._sharedData.entry_data."
+                "ProfilePage[0].user.followed_by.count")
+        except:
+            return False, None, False, 'None'
+
         browser.get(link)
         # update server calls
         update_activity()

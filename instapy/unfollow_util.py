@@ -330,14 +330,18 @@ def follow_user(browser, follow_restrict, login, user_name, blacklist, logger, l
     """Follows the user of the currently opened image"""
 
     try:
-        follow_button = browser.find_element_by_xpath(
-                "//button[text()='Follow']")
+        follow_button = browser.find_element_by_xpath("//button[text()='Follow']")
+    except Exception, e:
+        logger.info('--> Follow button not found {}'.format(e))
+        sleep(1)
+        return 0
 
+    try:
         # Do we still need this sleep?
         sleep(2)
 
         if follow_button.is_displayed():
-            follow_button.click()
+            follow_button.send_keys("\n")
             update_activity('follows')
         else:
             browser.execute_script(
@@ -359,7 +363,7 @@ def follow_user(browser, follow_restrict, login, user_name, blacklist, logger, l
         sleep(3)
         return 1
     except NoSuchElementException:
-        logger.info('--> Already following')
+        logger.info('--> Following Failed')
         sleep(1)
         return 0
 
