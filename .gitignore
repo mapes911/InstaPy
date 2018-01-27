@@ -100,5 +100,11 @@ ENV/
 .idea
 .vscode
 
+# DB
+db/instapy.db
+
 # log files
 logs/
+
+# config
+insta_config.py

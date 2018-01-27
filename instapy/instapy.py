@@ -84,7 +84,7 @@ class InstaPy:
             os.makedirs(self.logfolder)
 
         self.page_delay = page_delay
-        self.switch_language = True
+        self.switch_language = False
         self.use_firefox = use_firefox
         self.firefox_profile_path = None
 
