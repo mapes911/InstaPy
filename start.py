@@ -8,7 +8,7 @@ from insta_config import users
 while True:
     for run in runs:
         try:
-            username = config['user']
+            username = run['user']
             password = users[username]
         except:
             continue
