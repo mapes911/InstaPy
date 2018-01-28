@@ -23,12 +23,18 @@ while True:
         if 'do_follow' in config and config['do_follow'] is True:
             session.set_do_follow(enabled=True, percentage=config['do_follow_percentage'], times=config['do_follow_times'])
 
-        # run the like_by_tags
-        session.like_by_tags_with_inclusion(
-            main_tag=run['main_tag'],
-            include_tags=run['include_tags'],
-            amount=run['amount']
-        )
+        if 'inclusion' in run and run['inclusion'] is True:
+            # run the like_by_tags
+            session.like_by_tags_with_inclusion(
+                main_tag=run['main_tag'],
+                include_tags=run['include_tags'],
+                amount=run['amount']
+            )
+        else:
+            session.like_by_tags(
+                tags=run['include_tags'],
+                amount=run['amount']
+            )
 
         # do an unfollow?
         if 'do_unfollow' in config and config['do_unfollow'] is True:
