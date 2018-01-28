@@ -3,10 +3,17 @@ import time
 from instapy import InstaPy
 from insta_config import config
 from insta_config import runs
+from insta_config import users
 
 while True:
     for run in runs:
-        session = InstaPy(username=config['username'], password=config['password'], nogui=config['nogui'])
+        try:
+            username = config['user']
+            password = users[username]
+        except:
+            continue
+
+        session = InstaPy(username=username, password=password, nogui=config['nogui'])
         session.login()
 
         # read the global config and do the set_XXX methods
