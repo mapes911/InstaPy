@@ -1,5 +1,6 @@
 import re
 import random
+from .util import formatNumber
 
 """Module that handles the like features"""
 from math import ceil
@@ -160,6 +161,7 @@ def get_links_for_tag(browser,
                       skip_top_posts=True):
     """Fetches the number of links specified
     by amount and returns a list of links"""
+
     if media is None:
         # All known media types
         media = ['', 'Post', 'Video']
@@ -176,95 +178,74 @@ def get_links_for_tag(browser,
     update_activity()
     sleep(2)
 
-    # clicking load more
-    body_elem = browser.find_element_by_tag_name('body')
-    sleep(2)
-
-    abort = True
-    try:
-        load_button = body_elem.find_element_by_xpath(
-            '//a[contains(@class, "_1cr2e _epyes")]')
-    except:
-        try:
-            # scroll down to load posts
-            for i in range(int(ceil(amount/12))):
-                browser.execute_script(
-                    "window.scrollTo(0, document.body.scrollHeight);")
-                sleep(2)
-        except:
-            logger.warning(
-                'Load button not found, working with current images!')
-        else:
-            abort = False
-            body_elem.send_keys(Keys.END)
-            sleep(2)
-            # update server calls
-            update_activity()
-    else:
-        abort = False
-        body_elem.send_keys(Keys.END)
-        sleep(2)
-        load_button.click()
-        # update server calls
-        update_activity()
-
-    body_elem.send_keys(Keys.HOME)
+    top_elements = browser.find_element_by_xpath('//main/article/div[1]')
+    top_posts = top_elements.find_elements_by_tag_name('a')
     sleep(1)
 
-    # Get links
     if skip_top_posts:
         main_elem = browser.find_element_by_xpath('//main/article/div[2]')
     else:
         main_elem = browser.find_element_by_tag_name('main')
-
     link_elems = main_elem.find_elements_by_tag_name('a')
-    total_links = len(link_elems)
-    links = []
-    filtered_links = 0
-    try:
-        if link_elems:
-            links = [link_elem.get_attribute('href') for link_elem in link_elems
-                     if link_elem and link_elem.text in media]
-            filtered_links = len(links)
+    sleep(1)
 
-    except BaseException as e:
-        logger.error("link_elems error {}".format(str(e)))
+    if not link_elems:   #this tag does not have `Top Posts` or it really is empty..
+        main_elem = browser.find_element_by_xpath('//main/article/div[1]')
+        top_posts = []
+    sleep(2)
 
-    while (filtered_links < amount) and not abort:
-        amount_left = amount - filtered_links
-        # Average items of the right media per page loaded
-        new_per_page = ceil(12 * filtered_links / total_links)
-        if new_per_page == 0:
-            # Avoid division by zero
-            new_per_page = 1. / 12.
-        # Number of page load needed
-        new_needed = int(ceil(amount_left / new_per_page))
+    possible_posts = formatNumber(browser.find_element_by_xpath(
+                                "//span[contains(@class, '_fd86t')]").text)
 
-        if new_needed > 12:
-            # Don't go bananas trying to get all of instagram!
-            new_needed = 12
+    logger.info("desired amount: {}  |  top posts [{}]: {}  |  possible posts: {}".format(amount,
+                                      ('enabled' if not skip_top_posts else 'disabled'), len(top_posts), possible_posts))
+    possible_posts = possible_posts if not skip_top_posts else possible_posts-len(top_posts)
+    amount = possible_posts if amount > possible_posts else amount
+    #sometimes pages do not have the correct amount of posts as it is written there, it may be cos of some posts is deleted but still keeps counted for the tag
 
-        for i in range(new_needed):  # add images x * 12
-            # Keep the latest window active while loading more posts
-            before_load = total_links
-            body_elem.send_keys(Keys.END)
-            # update server calls
+    #Get links
+    links = get_links(browser, tag, logger, media, main_elem)
+    filtered_links = len(links)
+    try_again = 0
+    sc_rolled = 0
+    nap = 1.5
+    while filtered_links in range(1, amount):
+        if sc_rolled > 100:
+            logger.info("Scrolled too much! ~ sleeping a bit :>")
+            sleep(600)
+            sc_rolled = 0
+        for i in range(3):
+            browser.execute_script(
+                "window.scrollTo(0, document.body.scrollHeight);")
+            sc_rolled += 1
             update_activity()
-            sleep(1)
-            body_elem.send_keys(Keys.HOME)
-            sleep(1)
-            link_elems = main_elem.find_elements_by_tag_name('a')
-            total_links = len(link_elems)
-            abort = (before_load == total_links)
-            if abort:
+            sleep(nap)   #if not slept, and internet speed is low, instagram will only scroll one time, instead of many times you sent scoll command...
+        sleep(3)
+        links.extend(get_links(browser, tag, logger, media, main_elem))
+
+        links_all = links   #uniqify links while preserving order
+        s = set()
+        links = []
+        for i in links_all:
+            if i not in s:
+                s.add(i)
+                links.append(i)
+        if len(links) == filtered_links:
+            try_again += 1
+            nap = 3 if try_again==1 else 5
+            logger.info("Insufficient amount of links ~ trying again: {}".format(try_again))
+            sleep(3)
+            if try_again > 2:   #you can try again as much as you want by changing this number
+                logger.info("\n'{}' tag POSSIBLY has less images than desired...".format(tag[1:] if tag[:1] == '#' else tag))
                 break
-
-        links = [link_elem.get_attribute('href') for link_elem in link_elems
-                 if link_elem.text in media]
-        filtered_links = len(links)
-
+        else:
+            filtered_links = len(links)
+            try_again = 0
+            nap = 1.5
+    sleep(4)
+        
     return links[:amount]
-
+                      
 
 def get_links_for_username(browser,
                            username,
@@ -618,3 +599,19 @@ def get_tags(browser, url):
 
     tags = findall(r'#\w*', image_text)
     return tags
+
+def get_links(browser, tag, logger, media, element):
+    # Get image links in scope from tags
+    link_elems = element.find_elements_by_tag_name('a')
+    sleep(2)
+    links = []
+    try:
+        if link_elems:
+            new_links = [link_elem.get_attribute('href') for link_elem in link_elems
+                     if link_elem and link_elem.text in media]
+            links.extend(new_links)
+        else:
+            logger.info("'{}' tag does not contain a picture".format(tag[1:] if tag[:1] == '#' else tag))
+    except BaseException as e:
+        logger.error("link_elems error {}".format(str(e)))
+    return links
