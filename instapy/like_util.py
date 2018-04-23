@@ -503,7 +503,7 @@ def check_link(browser,
         try:
             num_followers = browser.execute_script(
                 "return window._sharedData.entry_data."
-                "ProfilePage[0].user.followed_by.count")
+                "ProfilePage[0].graphql.user.edge_followed_by.count")
         except:
             return False, None, False, 'None'
 
@@ -569,7 +569,7 @@ def like_image(browser, username, blacklist, logger):
             add_user_to_blacklist(
                 browser, username, blacklist['campaign'], action, logger
             )
-        sleep(2)
+        sleep(4)
         return True
     elif len(liked_elem) == 1:
         logger.info('--> Already Liked!')
