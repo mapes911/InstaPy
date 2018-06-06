@@ -195,7 +195,7 @@ def get_links_for_tag(browser,
     sleep(2)
 
     possible_posts = formatNumber(browser.find_element_by_xpath(
-                                "//span[contains(@class, '_fd86t')]").text)
+                                "//span[contains(@class, 'g47SY')]").text)
 
     logger.info("desired amount: {}  |  top posts [{}]: {}  |  possible posts: {}".format(amount,
                                       ('enabled' if not skip_top_posts else 'disabled'), len(top_posts), possible_posts))
