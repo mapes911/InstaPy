@@ -96,12 +96,28 @@ ENV/
 # Mac files
 .DS_Store
 
+# Storage
+instapy.db
+logs/
+
 # Editors
 .idea
 .vscode
 
+<<<<<<< HEAD
 # log files
 logs/
 
 # config
 insta_config.py
+=======
+# pytest
+.pytest_cache/
+tests/logs
+
+# Pipfile
+Pipfile
+
+# Instances
+z_*
+>>>>>>> 65d32311174b19fcdd7b7cf172000c6da4ef0764
